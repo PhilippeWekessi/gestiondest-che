@@ -1,0 +1,15 @@
+1. Vérifier les fichiers modifiés
+
+commande : git status
+
+2. Préparer les fichiers (Ajout)
+
+commande : git add .
+
+3. Enregistrer les modifications (Commit)
+
+commande : git commit -m "Mon message décrivant les modifications"
+
+4. Envoyer vers GitHub (Push)
+
+commande : git push origin main
