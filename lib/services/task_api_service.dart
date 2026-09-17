@@ -8,7 +8,7 @@ import 'auth_session.dart';
 import 'task_cache_service.dart';
 
 class TaskApiService {
-  static const baseUrl = 'http://10.0.2.2:8000/api/tasks/';
+  static const baseUrl = 'http://localhost:8000/api/tasks/';
 
   final AuthSession session;
   final TaskCacheService cache;

@@ -9,7 +9,7 @@ class TaskController extends Controller
 {
     public function index()
     {
-        return Task::where('user_id', auth()->id())->orderBy('date_time', 'desc')->get();
+        return Task::orderBy('date_time', 'desc')->get();
     }
 
     public function store(Request $request)
@@ -21,19 +21,18 @@ class TaskController extends Controller
             'priority' => 'required|in:high,medium,low',
         ]);
 
-        $validated['user_id'] = auth()->id();
-        return response()->json(Task::create($validated), 201);
+        $task = Task::create($validated);
+
+        return response()->json($task, 201);
     }
 
     public function show(Task $task)
     {
-        abort_unless($task->user_id === auth()->id(), 404);
         return $task;
     }
 
     public function update(Request $request, Task $task)
     {
-        abort_unless($task->user_id === auth()->id(), 404);
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'nullable|string',
@@ -43,12 +42,11 @@ class TaskController extends Controller
 
         $task->update($validated);
 
-        return response()->json($task);
+        return response()->json($task, 200);
     }
 
     public function destroy(Task $task)
     {
-        abort_unless($task->user_id === auth()->id(), 404);
         $task->delete();
 
         return response()->json(null, 204);
