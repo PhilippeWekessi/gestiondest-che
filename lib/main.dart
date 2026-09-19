@@ -14,7 +14,7 @@ class ZikoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Ziko',
+      title: 'Gestion des Tâches',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

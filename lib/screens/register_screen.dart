@@ -13,7 +13,8 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _name = TextEditingController();
+  final _nom = TextEditingController();
+  final _prenom = TextEditingController();
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -27,7 +28,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     try {
       await AuthApiService(widget.session).register(
-        fullName: _name.text.trim(),
+        nom: _nom.text.trim(),
+        prenom: _prenom.text.trim(),
         phone: _phone.text.trim(),
         email: _email.text.trim(),
         password: _password.text,
@@ -42,7 +44,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _name.dispose();
+    _nom.dispose();
+    _prenom.dispose();
     _phone.dispose();
     _email.dispose();
     _password.dispose();
@@ -60,7 +63,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          _field(_name, 'Nom complet'),
+          _field(_nom, 'Nom'),
+          const SizedBox(height: 12),
+          _field(_prenom, 'Prénom'),
           const SizedBox(height: 12),
           _field(_phone, 'Téléphone'),
           const SizedBox(height: 12),

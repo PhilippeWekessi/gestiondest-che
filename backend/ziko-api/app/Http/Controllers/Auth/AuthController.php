@@ -1,71 +1,39 @@
-<?php
-
-namespace App\Http\Controllers\Auth;
-
-use App\Http\Controllers\Controller;
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
-
-class AuthController extends Controller
+public function login(Request $request)
 {
-    public function register(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
+    $validated = $request->validate([
+        'identifier' => 'required|string', // email ou téléphone
+        'password' => 'required|string',
+    ]);
+
+    $user = User::where('email', $validated['identifier'])
+        ->orWhere('phone', $validated['identifier'])
+        ->first();
+
+    if (!$user || !Hash::check($validated['password'], $user->password)) {
+        throw ValidationException::withMessages([
+            'identifier' => ['Identifiants incorrects.'],
         ]);
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'phone' => $validated['phone'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]);
-
-        $token = $user->createToken('ziko-token')->plainTextToken;
-
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ], 201);
     }
 
-    public function login(Request $request)
-    {
-        $validated = $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
+    $token = $user->createToken('ziko-token')->plainTextToken;
 
-        $user = User::where('email', $validated['email'])->first();
+    return response()->json([
+        'user' => $user,
+        'token' => $token,
+    ], 200);
+}
 
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Identifiants incorrects.'],
-            ]);
-        }
+public function updateProfile(Request $request)
+{
+    $user = $request->user();
 
-        $token = $user->createToken('ziko-token')->plainTextToken;
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'phone' => 'nullable|string|max:20',
+        'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+    ]);
 
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ], 200);
-    }
+    $user->update($validated);
 
-    public function logout(Request $request)
-    {
-        $request->user()->currentAccessToken()->delete();
-
-        return response()->json(['message' => 'Déconnecté avec succès'], 200);
-    }
-
-    public function me(Request $request)
-    {
-        return response()->json($request->user());
-    }
+    return response()->json($user, 200);
 }

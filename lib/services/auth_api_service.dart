@@ -1,100 +1,101 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import '../models/user_profile.dart';
 import 'auth_session.dart';
 
 class AuthApiService {
-  static const baseUrl = 'http://10.0.2.2:8000/api';
-
   final AuthSession session;
+  AuthApiService(this.session);
 
-  const AuthApiService(this.session);
+  static const String baseUrl = 'http://localhost:8000/api/auth';
 
   Future<void> register({
-    required String fullName,
+    required String nom,
+    required String prenom,
     required String phone,
     required String email,
     required String password,
   }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
-      headers: _jsonHeaders,
+      Uri.parse('$baseUrl/register'),
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'full_name': fullName.trim(),
-        'phone': phone.trim(),
-        'email': email.trim().toLowerCase(),
+        'name': '$prenom $nom',
+        'phone': phone,
+        'email': email,
         'password': password,
       }),
     );
-    _ensureSuccess(response);
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      await session.save(
+        token: data['token'],
+        user: UserProfile.fromJson(data['user']),
+      );
+      return;
+    }
+    throw Exception(_extractError(response));
   }
 
-  Future<void> login(String email, String password) async {
+  Future<void> login(String identifier, String password) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: _jsonHeaders,
-      body: jsonEncode({
-        'email': email.trim().toLowerCase(),
-        'password': password,
-      }),
+      Uri.parse('$baseUrl/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'identifier': identifier, 'password': password}),
     );
-    _ensureSuccess(response);
-    final data =
-        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    await session.save(
-      data['token'] as String,
-      UserProfile.fromJson(data['user'] as Map<String, dynamic>),
-    );
-  }
 
-  Future<UserProfile> updateProfile(UserProfile profile) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/auth/profile'),
-      headers: _authHeaders,
-      body: jsonEncode(profile.toJson()),
-    );
-    _ensureSuccess(response);
-    final updated = UserProfile.fromJson(
-      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
-    );
-    await session.updateUser(updated);
-    return updated;
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      await session.save(
+        token: data['token'],
+        user: UserProfile.fromJson(data['user']),
+      );
+      return;
+    }
+    throw Exception(_extractError(response));
   }
 
   Future<void> logout() async {
     if (session.token != null) {
-      await http.post(Uri.parse('$baseUrl/auth/logout'), headers: _authHeaders);
+      await http.post(
+        Uri.parse('$baseUrl/logout'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${session.token}',
+        },
+      );
     }
     await session.clear();
   }
 
-  static const _jsonHeaders = {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-  };
+  Future<void> updateProfile(UserProfile profile) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${session.token}',
+      },
+      body: jsonEncode(profile.toJson()),
+    );
 
-  Map<String, String> get _authHeaders => {
-    ..._jsonHeaders,
-    'Authorization': 'Bearer ${session.token}',
-  };
-
-  void _ensureSuccess(http.Response response) {
-    if (response.statusCode >= 200 && response.statusCode < 300) return;
-    try {
-      final data =
-          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-      final errors = data['errors'] as Map<String, dynamic>?;
-      final firstError = errors?.values.first;
-      throw Exception(
-        firstError is List
-            ? firstError.first
-            : data['message'] ?? 'Erreur API.',
-      );
-    } catch (error) {
-      if (error is Exception) rethrow;
-      throw Exception('Erreur API (${response.statusCode}).');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      await session.updateUser(UserProfile.fromJson(data));
+      return;
     }
+    throw Exception(_extractError(response));
+  }
+
+  String _extractError(http.Response response) {
+    try {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (data['message'] != null) return data['message'];
+      if (data['errors'] != null) {
+        final errors = data['errors'] as Map<String, dynamic>;
+        return errors.values.first[0];
+      }
+    } catch (_) {}
+    return 'Une erreur est survenue (${response.statusCode})';
   }
 }

@@ -4,6 +4,7 @@ import '../services/auth_api_service.dart';
 import '../services/auth_session.dart';
 import '../theme/app_colors.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final AuthSession session;
@@ -16,7 +17,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _email = TextEditingController();
+  final _identifier = TextEditingController();
   final _password = TextEditingController();
   bool _loading = false;
   String? _error;
@@ -29,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await AuthApiService(
         widget.session,
-      ).login(_email.text.trim(), _password.text);
+      ).login(_identifier.text.trim(), _password.text);
     } catch (error) {
       setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
       return;
@@ -41,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _email.dispose();
+    _identifier.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -56,9 +57,9 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             const SizedBox(height: 60),
             const Text(
-              'Ziko',
+              'Gestion des Tâches',
               style: TextStyle(
-                fontSize: 40,
+                fontSize: 30,
                 fontWeight: FontWeight.bold,
                 color: AppColors.accent,
               ),
@@ -69,14 +70,30 @@ class _LoginScreenState extends State<LoginScreen> {
               style: TextStyle(color: AppColors.inkSoft),
             ),
             const SizedBox(height: 44),
-            _field(_email, 'Email', Icons.email_outlined),
+            _field(_identifier, 'Email ou numéro de téléphone', Icons.person_outline),
             const SizedBox(height: 14),
             _field(_password, 'Mot de passe', Icons.lock_outline, secret: true),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _loading
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
+                child: const Text('Mot de passe oublié ?'),
+              ),
+            ),
             if (_error != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 4),
               Text(_error!, style: const TextStyle(color: AppColors.high)),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
             FilledButton(
               onPressed: _loading ? null : _login,
               child: Text(_loading ? 'Connexion...' : 'Se connecter'),
